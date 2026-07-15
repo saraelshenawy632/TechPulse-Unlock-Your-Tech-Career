@@ -1,0 +1,51 @@
+{
+  "name": "TechPulse Analytics Section Theme",
+  "dataColors": [
+    "#7C3AED",
+    "#F59E0B",
+    "#10B981",
+    "#0EA5E9",
+    "#EC4899",
+    "#94A3B8"
+  ],
+  "background": "#030712",
+  "foreground": "#F9FAFB",
+  "tableAccent": "#7C3AED",
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [
+          {
+            "show": true,
+            "color": { "solid": { "color": "#0B132B" } },
+            "transparency": 0
+          }
+        ],
+        "border": [
+          {
+            "show": true,
+            "color": { "solid": { "color": "#1E293B" } },
+            "radius": 6
+          }
+        ],
+        "title": [
+          {
+            "show": true,
+            "fontColor": { "solid": { "color": "#F9FAFB" } },
+            "fontSize": 11,
+            "fontFamily": "Segoe UI Semibold"
+          }
+        ]
+      }
+    },
+    "lineChart": {
+      "*": {
+        "lineStyles": [
+          {
+            "strokeWidth": 3
+          }
+        ]
+      }
+    }
+  }
+}
