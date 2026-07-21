@@ -10,13 +10,31 @@ import UserTable from "../components/admin/UsersTable";
 import ApplicationTable from "../components/admin/ApplicationTable";
 import ApplicationStats from "../components/admin/ApplicationStats";
 
-import { getDashboard, getJobs, deleteJob, addJob, updateJob, deleteUser, updateRole } from "../services/adminService";
+import { 
+    getDashboard, 
+    getAnalytics, 
+    getJobs, 
+    deleteJob, 
+    addJob, 
+    updateJob, 
+    deleteUser, 
+    updateRole 
+} from "../services/adminService";
 import { confirmDelete, success, error } from "../utils/alerts";
 
 export default function Admin() {
     const [activeTab, setActiveTab] = useState("dashboard");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [dashboard, setDashboard] = useState({});
+    
+    // Analytics State جديد
+    const [analytics, setAnalytics] = useState({
+        jobsByCategory: [],
+        workTypes: [],
+        companies: [],
+        locations: []
+    });
+
     const [jobs, setJobs] = useState([]);
     const [users, setUsers] = useState([]);
     const [applicationsCount, setApplicationsCount] = useState(0);
@@ -32,13 +50,25 @@ export default function Admin() {
     async function loadData() {
         try {
             setLoading(true);
-            const [dashboardRes, jobsRes] = await Promise.all([getDashboard(), getJobs(page, pageSize)]);
+            const [dashboardRes, jobsRes, analyticsRes] = await Promise.all([
+                getDashboard(), 
+                getJobs(page, pageSize),
+                getAnalytics()
+            ]);
+            
             setDashboard(dashboardRes.data.dashboard);
             setUsers(dashboardRes.data.users);
             setApplicationsCount(dashboardRes.data.dashboard.Applications || 0);
             setJobs(jobsRes.data.jobs);
             setTotalJobs(jobsRes.data.total);
             setTotalPages(jobsRes.data.totalPages);
+
+            setAnalytics({
+                jobsByCategory: analyticsRes.data.jobsByCategory || [],
+                workTypes: analyticsRes.data.workTypes || [],
+                companies: analyticsRes.data.companies || [],
+                locations: analyticsRes.data.locations || []
+            });
         } catch (err) {
             error("Failed Loading Data");
         } finally {
@@ -145,7 +175,16 @@ export default function Admin() {
                 </header>
 
                 <div className="max-w-7xl mx-auto">
-                    {activeTab === "dashboard" && <div className="space-y-8"><DashboardCards dashboard={dashboard} /><ApplicationStats dashboard={dashboard} /><Charts jobs={jobs} /></div>}
+                    {activeTab === "dashboard" && (
+                        <div className="space-y-8">
+                            <DashboardCards dashboard={dashboard} />
+                            <ApplicationStats dashboard={dashboard} />
+                            <Charts 
+                                jobsByCategory={analytics.jobsByCategory} 
+                                workTypes={analytics.workTypes} 
+                            />
+                        </div>
+                    )}
                     {activeTab === "jobs" && (
                         <div>
                             <div className="flex justify-end mb-6"><button onClick={() => { setEditingJob(null); setOpen(true); }} className="bg-green-600 px-6 py-3 rounded-xl flex gap-2 items-center"><FaPlus /> Add Job</button></div>
@@ -154,7 +193,12 @@ export default function Admin() {
                     )}
                     {activeTab === "applications" && <ApplicationTable />}
                     {activeTab === "users" && <UserTable users={users} onDelete={handleDeleteUser} onRole={handleRole} />}
-                    {activeTab === "analytics" && <Charts jobs={jobs} />}
+                    {activeTab === "analytics" && (
+                        <Charts 
+                            jobsByCategory={analytics.jobsByCategory} 
+                            workTypes={analytics.workTypes} 
+                        />
+                    )}
                 </div>
             </main>
 

@@ -8,263 +8,377 @@ const app = express();
 
 
 // ====================================
-// Routes
+// ROUTES
 // ====================================
 
-const authRoutes = require("./routes/authRoute");
-const jobsRoutes = require("./routes/jobs");
-const companiesRoutes = require("./routes/companies");
-const locationsRoutes = require("./routes/locations");
-const analyticsRoutes = require("./routes/analyticsRoutes");
-const statsRoutes = require("./routes/statsRoutes");
-const skillsRoutes = require("./routes/skills");
-const applicationRoutes = require("./routes/applications");
-const adminRoutes = require("./routes/admin");
-const usersRoutes = require("./routes/users");
+const authRoutes =
+    require("./routes/authRoute");
 
+const jobsRoutes =
+    require("./routes/jobs");
+
+const companiesRoutes =
+    require("./routes/companies");
+
+const locationsRoutes =
+    require("./routes/locations");
+
+const analyticsRoutes =
+    require("./routes/analyticsRoutes");
+
+const statsRoutes =
+    require("./routes/statsRoutes");
+
+const skillsRoutes =
+    require("./routes/skills");
+
+const applicationRoutes =
+    require("./routes/applications");
+
+const adminRoutes =
+    require("./routes/admin");
+
+const usersRoutes =
+    require("./routes/users");
 
 
 // ====================================
-// Middlewares
+// MIDDLEWARES
 // ====================================
 
 app.use(
+
     cors({
-        origin:"http://localhost:5173",
-        credentials:true
+
+        origin:
+            "http://localhost:5173",
+
+        credentials:
+            true
+
     })
+
 );
 
 
-app.use(express.json());
+app.use(
+    express.json()
+);
+
 
 app.use(
+
     express.urlencoded({
-        extended:true
+
+        extended:
+            true
+
     })
+
 );
-
-
 
 
 // ====================================
-// API Routes
+// API ROUTES
 // ====================================
 
 
+// AUTH
+
 app.use(
-"/api/auth",
-authRoutes
+
+    "/api/auth",
+
+    authRoutes
+
 );
 
 
+// JOBS
 
 app.use(
-"/api/jobs",
-jobsRoutes
+
+    "/api/jobs",
+
+    jobsRoutes
+
 );
 
 
+// COMPANIES
 
 app.use(
-"/api/companies",
-companiesRoutes
+
+    "/api/companies",
+
+    companiesRoutes
+
 );
 
 
+// LOCATIONS
 
 app.use(
-"/api/locations",
-locationsRoutes
+
+    "/api/locations",
+
+    locationsRoutes
+
 );
 
 
+// GENERAL STATS
 
 app.use(
-"/api/stats",
-statsRoutes
+
+    "/api/stats",
+
+    statsRoutes
+
 );
 
 
+// =====================================================
+// ANALYTICS
+//
+// GET
+// /api/admin/analytics
+//
+// GET
+// /api/admin/analytics/jobs
+//
+// GET
+// /api/admin/analytics/locations
+// =====================================================
 
 app.use(
-"/api/analytics",
-analyticsRoutes
+
+    "/api/admin/analytics",
+
+    analyticsRoutes
+
 );
 
 
+// TRENDING SKILLS
 
 app.use(
-"/api/trending-skills",
-skillsRoutes
+
+    "/api/trending-skills",
+
+    skillsRoutes
+
 );
 
 
+// APPLICATIONS
 
 app.use(
-"/api",
-applicationRoutes
+
+    "/api",
+
+    applicationRoutes
+
 );
 
 
-
-// Admin
-// هنا كل حاجة:
-// dashboard
-// jobs
-// applications
-// users
+// =====================================================
+// ADMIN
+//
+// Dashboard
+// Jobs
+// Applications
+// Users
+// =====================================================
 
 app.use(
-"/api/admin",
-adminRoutes
+
+    "/api/admin",
+
+    adminRoutes
+
 );
 
 
+// USERS
 
 app.use(
-"/api/users",
-usersRoutes
+
+    "/api/users",
+
+    usersRoutes
+
 );
 
 
+// ====================================
+// ROOT
+// ====================================
 
+app.get(
 
+    "/",
 
-app.get("/",(req,res)=>{
+    (req, res) => {
 
-    res.status(200).json({
+        res.status(200).json({
 
-        success:true,
+            success:
+                true,
 
-        message:
-        "🚀 TechPulse Egypt API Running Successfully"
+            message:
+                "🚀 TechPulse Egypt API Running Successfully"
 
-    });
+        });
 
-});
+    }
 
-
-
+);
 
 
 // ====================================
 // 404
 // ====================================
 
-app.use((req,res)=>{
+app.use(
 
-    res.status(404).json({
+    (req, res) => {
 
-        success:false,
+        res.status(404).json({
 
-        message:
-        `Cannot ${req.method} ${req.originalUrl}`
+            success:
+                false,
 
-    });
+            message:
 
-});
+                `Cannot ${req.method} ${req.originalUrl}`
 
+        });
 
+    }
 
-
-
-// ====================================
-// Error Handler
-// ====================================
-
-
-app.use((err,req,res,next)=>{
-
-
-    console.error(err);
-
-
-    res.status(err.status || 500)
-    .json({
-
-        success:false,
-
-        message:
-        err.message || "Internal Server Error"
-
-    });
-
-
-});
-
-
-
+);
 
 
 // ====================================
-// Start
+// ERROR HANDLER
 // ====================================
 
+app.use(
+
+    (err, req, res, next) => {
+
+        console.error(
+            "Global Error:",
+            err
+        );
+
+
+        res
+
+            .status(
+                err.status || 500
+            )
+
+            .json({
+
+                success:
+                    false,
+
+                message:
+
+                    err.message ||
+
+                    "Internal Server Error"
+
+            });
+
+    }
+
+);
+
+
+// ====================================
+// START SERVER
+// ====================================
 
 const PORT =
-process.env.PORT || 5000;
+
+    process.env.PORT ||
+
+    5000;
 
 
+async function startServer() {
 
-async function startServer(){
-
-
-    try{
+    try {
 
 
         await connectDB();
 
 
+        app.listen(
 
-        app.listen(PORT,()=>{
+            PORT,
 
+            () => {
 
-            console.log(
-            "========================================"
-            );
-
-
-            console.log(
-            "✅ SQL Server Connected Successfully"
-            );
+                console.log(
+                    "========================================"
+                );
 
 
-            console.log(
-            `🚀 Server Running on http://localhost:${PORT}`
-            );
+                console.log(
+                    "✅ SQL Server Connected Successfully"
+                );
 
 
-            console.log(
-            "========================================"
-            );
+                console.log(
+
+                    `🚀 Server Running on http://localhost:${PORT}`
+
+                );
 
 
-        });
+                console.log(
+
+                    `📊 Analytics API: http://localhost:${PORT}/api/admin/analytics`
+
+                );
 
 
+                console.log(
+                    "========================================"
+                );
+
+            }
+
+        );
 
     }
 
-    catch(err){
+    catch (err) {
 
 
         console.error(
+
             "❌ Failed to start server"
+
         );
 
 
-        console.error(err);
+        console.error(
+            err
+        );
 
 
-        process.exit(1);
-
+        process.exit(
+            1
+        );
 
     }
 
-
 }
-
 
 
 startServer();

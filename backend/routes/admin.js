@@ -3,15 +3,25 @@ const express = require("express");
 const router = express.Router();
 
 
-const authMiddleware = require("../middleware/authMiddleware");
-const adminMiddleware = require("../middleware/adminMiddleware");
+const authMiddleware =
+    require("../middleware/authMiddleware");
 
-const { getPool, sql } = require("../config/db");
+const adminMiddleware =
+    require("../middleware/adminMiddleware");
 
 
-const jobController = require("../controllers/jobController");
+const {
+    getPool,
+    sql
+} = require("../config/db");
 
-const applicationController = require("../controllers/applicationController");
+
+const jobController =
+    require("../controllers/jobController");
+
+
+const applicationController =
+    require("../controllers/applicationController");
 
 
 // ==========================================
@@ -19,232 +29,398 @@ const applicationController = require("../controllers/applicationController");
 // ==========================================
 
 router.get(
+
     "/dashboard",
+
     authMiddleware,
+
     adminMiddleware,
 
-    async (req,res)=>{
+    async (req, res) => {
 
-
-        try{
-
+        try {
 
             const pool = getPool();
 
 
-
+            // =====================================
             // Dashboard KPIs
+            // =====================================
 
             const dashboardResult =
-            await pool.request()
-            .query(`
 
-                SELECT *
+                await pool
+                    .request()
+                    .query(`
 
-                FROM vw_DashboardKPIs
+                        SELECT *
 
-            `);
+                        FROM vw_DashboardKPIs
+
+                    `);
 
 
-
-
-
+            // =====================================
             // Users
-
+            // =====================================
 
             const usersResult =
-            await pool.request()
-            .query(`
 
-                SELECT
+                await pool
+                    .request()
+                    .query(`
 
-                    Id,
-                    Name,
-                    Email,
-                    Role,
-                    CreatedAt
+                        SELECT
 
-                FROM Users
+                            Id,
 
-                ORDER BY CreatedAt DESC
+                            Name,
 
-            `);
+                            Email,
+
+                            Role,
+
+                            CreatedAt
+
+                        FROM Users
+
+                        ORDER BY CreatedAt DESC
+
+                    `);
 
 
-
-
-
-
-
+            // =====================================
             // Recent Jobs
-
+            // =====================================
 
             const jobsResult =
-            await pool.request()
-            .query(`
 
-                SELECT TOP (10)
+                await pool
+                    .request()
+                    .query(`
 
+                        SELECT TOP (10)
 
-                    JobKey,
+                            JobKey,
 
-                    CompanyName,
+                            CompanyName,
 
-                    City,
+                            City,
 
-                    Country,
+                            Country,
 
-                    Title,
+                            Title,
 
-                    Posted,
+                            Posted,
 
-                    FullDate,
+                            FullDate,
 
-                    WorkType,
+                            WorkType,
 
-                    ExperienceLevel,
+                            ExperienceLevel,
 
-                    JobCategory
+                            JobCategory
 
+                        FROM vw_JobDetailsFixed
 
-                FROM vw_JobDetailsFixed
+                        ORDER BY FullDate DESC
 
-
-                ORDER BY FullDate DESC
-
-
-            `);
+                    `);
 
 
-
-
-
-
-
+            // =====================================
             // Applications
+            // =====================================
+
+            let applications = [];
 
 
-            let applications=[];
-
-
-            try{
-
+            try {
 
                 const applicationsResult =
-                await pool.request()
-                .query(`
 
+                    await pool
+                        .request()
+                        .query(`
 
-                    SELECT TOP (10)
+                            SELECT TOP (10)
 
+                                ApplicationID,
 
-                        ApplicationID,
+                                ApplicantName,
 
-                        ApplicantName,
+                                ApplicantEmail,
 
-                        ApplicantEmail,
+                                ResumeURL,
 
-                        ResumeURL,
+                                LinkedInURL,
 
-                        LinkedInURL,
+                                AppliedAt,
 
-                        AppliedAt,
+                                Status,
 
-                        Status,
+                                JobID
 
-                        JobID
+                            FROM JobApplications
 
+                            ORDER BY ApplicationID DESC
 
-                    FROM JobApplications
-
-
-                    ORDER BY ApplicationID DESC
-
-
-                `);
-
+                        `);
 
 
                 applications =
-                applicationsResult.recordset;
-
-
+                    applicationsResult.recordset;
 
             }
 
-            catch(err){
-
+            catch (err) {
 
                 console.log(
-                    "Applications Error:",
-                    err.message
-                );
 
+                    "Applications Error:",
+
+                    err.message
+
+                );
 
             }
 
 
-
-
-
+            // =====================================
+            // Response
+            // =====================================
 
             res.json({
 
-                success:true,
+                success: true,
 
                 dashboard:
-                dashboardResult.recordset[0],
-
+                    dashboardResult.recordset[0],
 
                 users:
-                usersResult.recordset,
-
+                    usersResult.recordset,
 
                 jobs:
-                jobsResult.recordset,
-
+                    jobsResult.recordset,
 
                 applications
 
-
             });
-
-
 
         }
 
-        catch(err){
-
+        catch (err) {
 
             console.log(err);
 
 
             res.status(500)
-            .json({
+                .json({
 
-                success:false,
+                    success: false,
 
-                message:err.message
+                    message:
+                        err.message
 
-            });
-
+                });
 
         }
-
 
     }
 
 );
 
 
+// ==========================================
+// Admin Analytics
+// ==========================================
 
+router.get(
+
+    "/analytics",
+
+    authMiddleware,
+
+    adminMiddleware,
+
+    async (req, res) => {
+
+        try {
+
+            const pool = getPool();
+
+
+            // =====================================
+            // Jobs By Category
+            // =====================================
+
+            const categoryResult =
+
+                await pool
+                    .request()
+                    .query(`
+
+                        SELECT
+
+                            ISNULL(
+                                JobCategory,
+                                'Other'
+                            ) AS JobCategory,
+
+                            COUNT(*) AS Count
+
+                        FROM vw_JobDetailsFixed
+
+                        GROUP BY JobCategory
+
+                        ORDER BY Count DESC
+
+                    `);
+
+
+            // =====================================
+            // Work Types Distribution
+            // =====================================
+
+            const workTypeResult =
+
+                await pool
+                    .request()
+                    .query(`
+
+                        SELECT
+
+                            ISNULL(
+                                WorkType,
+                                'Unknown'
+                            ) AS WorkType,
+
+                            COUNT(*) AS Count
+
+                        FROM vw_JobDetailsFixed
+
+                        GROUP BY WorkType
+
+                        ORDER BY Count DESC
+
+                    `);
+
+
+            // =====================================
+            // Jobs By Company
+            // =====================================
+
+            const companyResult =
+
+                await pool
+                    .request()
+                    .query(`
+
+                        SELECT TOP (10)
+
+                            CompanyName,
+
+                            COUNT(*) AS Count
+
+                        FROM vw_JobDetailsFixed
+
+                        WHERE CompanyName IS NOT NULL
+
+                        GROUP BY CompanyName
+
+                        ORDER BY Count DESC
+
+                    `);
+
+
+            // =====================================
+            // Jobs By Location
+            // =====================================
+
+            const locationResult =
+
+                await pool
+                    .request()
+                    .query(`
+
+                        SELECT TOP (10)
+
+                            City,
+
+                            Country,
+
+                            COUNT(*) AS Count
+
+                        FROM vw_JobDetailsFixed
+
+                        WHERE City IS NOT NULL
+
+                        GROUP BY
+
+                            City,
+
+                            Country
+
+                        ORDER BY Count DESC
+
+                    `);
+
+
+            // =====================================
+            // Response
+            // =====================================
+
+            res.json({
+
+                success: true,
+
+                jobsByCategory:
+                    categoryResult.recordset,
+
+                workTypes:
+                    workTypeResult.recordset,
+
+                companies:
+                    companyResult.recordset,
+
+                locations:
+                    locationResult.recordset
+
+            });
+
+        }
+
+        catch (err) {
+
+            console.log(
+
+                "Analytics Error:",
+
+                err
+
+            );
+
+
+            res.status(500)
+                .json({
+
+                    success: false,
+
+                    message:
+                        err.message
+
+                });
+
+        }
+
+    }
+
+);
 
 
 // ==========================================
 // Applications Management
 // ==========================================
-
-
 
 router.get(
 
@@ -261,13 +437,13 @@ router.get(
 
 router.get(
 
-"/applications/:id",
+    "/applications/:id",
 
-authMiddleware,
+    authMiddleware,
 
-adminMiddleware,
+    adminMiddleware,
 
-applicationController.getApplicationById
+    applicationController.getApplicationById
 
 );
 
@@ -285,9 +461,6 @@ router.put(
 );
 
 
-
-
-
 router.delete(
 
     "/applications/:id",
@@ -301,16 +474,9 @@ router.delete(
 );
 
 
-
-
-
-
-
 // ==========================================
 // Jobs Management
 // ==========================================
-
-
 
 router.delete(
 
@@ -323,9 +489,6 @@ router.delete(
     jobController.deleteJob
 
 );
-
-
-
 
 
 router.post(
@@ -341,9 +504,6 @@ router.post(
 );
 
 
-
-
-
 router.put(
 
     "/jobs/:id",
@@ -357,17 +517,9 @@ router.put(
 );
 
 
-
-
-
-
-
-
 // ==========================================
 // Users Management
 // ==========================================
-
-
 
 router.put(
 
@@ -377,90 +529,80 @@ router.put(
 
     adminMiddleware,
 
+    async (req, res) => {
 
-    async(req,res)=>{
+        try {
 
-
-        try{
-
-
-            const pool=getPool();
+            const pool = getPool();
 
 
-            const {role}=req.body;
-
-
-
-            await pool.request()
-
-            .input(
-                "id",
-                sql.Int,
-                req.params.id
-            )
-
-            .input(
-                "role",
-                sql.NVarChar,
+            const {
                 role
-            )
+            } = req.body;
 
 
-            .query(`
+            await pool
+                .request()
 
+                .input(
+                    "id",
+                    sql.Int,
+                    req.params.id
+                )
 
-                UPDATE Users
+                .input(
+                    "role",
+                    sql.NVarChar,
+                    role
+                )
 
-                SET Role=@role
+                .query(`
 
-                WHERE Id=@id
+                    UPDATE Users
 
+                    SET Role = @role
 
-            `);
+                    WHERE Id = @id
 
-
+                `);
 
 
             res.json({
 
-                success:true,
+                success: true,
 
                 message:
-                "Role Updated Successfully"
+                    "Role Updated Successfully"
 
             });
 
-
-
         }
 
-        catch(err){
-
+        catch (err) {
 
             console.log(err);
 
 
             res.status(500)
-            .json({
+                .json({
 
-                message:err.message
+                    success: false,
 
-            });
+                    message:
+                        err.message
 
+                });
 
         }
-
 
     }
 
 );
 
 
-
 // ==========================================
 // Get Jobs With Pagination
 // ==========================================
-
 
 router.get(
 
@@ -470,155 +612,155 @@ router.get(
 
     adminMiddleware,
 
+    async (req, res) => {
 
-    async(req,res)=>{
-
-
-        try{
-
+        try {
 
             const pool = getPool();
 
 
             const page =
-            parseInt(req.query.page) || 1;
+
+                parseInt(
+                    req.query.page
+                ) || 1;
 
 
             const limit =
-            parseInt(req.query.limit) || 10;
+
+                parseInt(
+                    req.query.limit
+                ) || 10;
 
 
             const offset =
-            (page - 1) * limit;
+
+                (page - 1) * limit;
 
 
-
+            // =====================================
+            // Paginated Jobs
+            // =====================================
 
             const jobsResult =
-            await pool.request()
+
+                await pool
+                    .request()
+
+                    .input(
+                        "offset",
+                        sql.Int,
+                        offset
+                    )
+
+                    .input(
+                        "limit",
+                        sql.Int,
+                        limit
+                    )
+
+                    .query(`
+
+                        SELECT
+
+                            JobKey,
+
+                            CompanyName,
+
+                            City,
+
+                            Country,
+
+                            Title,
+
+                            Posted,
+
+                            FullDate,
+
+                            WorkType,
+
+                            ExperienceLevel,
+
+                            JobCategory
+
+                        FROM vw_JobDetailsFixed
+
+                        ORDER BY FullDate DESC
+
+                        OFFSET @offset ROWS
+
+                        FETCH NEXT @limit ROWS ONLY
+
+                    `);
 
 
-            .input(
-                "offset",
-                sql.Int,
-                offset
-            )
-
-
-            .input(
-                "limit",
-                sql.Int,
-                limit
-            )
-
-
-            .query(`
-
-
-                SELECT
-
-
-                    JobKey,
-
-                    CompanyName,
-
-                    City,
-
-                    Country,
-
-                    Title,
-
-                    Posted,
-
-                    FullDate,
-
-                    WorkType,
-
-                    ExperienceLevel,
-
-                    JobCategory
-
-
-                FROM vw_JobDetailsFixed
-
-
-                ORDER BY FullDate DESC
-
-
-                OFFSET @offset ROWS
-
-                FETCH NEXT @limit ROWS ONLY
-
-
-            `);
-
-
-
-
+            // =====================================
+            // Total Jobs
+            // =====================================
 
             const countResult =
-            await pool.request()
-            .query(`
 
-                SELECT COUNT(*) AS total
+                await pool
+                    .request()
+                    .query(`
 
-                FROM vw_JobDetailsFixed
+                        SELECT
 
-            `);
+                            COUNT(*) AS total
 
+                        FROM vw_JobDetailsFixed
 
-
+                    `);
 
 
             const total =
-            countResult.recordset[0].total;
+
+                countResult
+                    .recordset[0]
+                    .total;
 
 
+            // =====================================
+            // Response
+            // =====================================
 
             res.json({
 
-
-                success:true,
-
+                success: true,
 
                 jobs:
-                jobsResult.recordset,
-
+                    jobsResult.recordset,
 
                 total,
 
-
                 page,
 
-
                 totalPages:
-                Math.ceil(total / limit)
 
+                    Math.ceil(
+                        total / limit
+                    )
 
             });
 
-
-
         }
 
-        catch(err){
-
+        catch (err) {
 
             console.log(err);
 
 
-            res.status(500).json({
+            res.status(500)
+                .json({
 
-                success:false,
+                    success: false,
 
-                message:err.message
+                    message:
+                        err.message
 
-            });
-
+                });
 
         }
-
-
 
     }
 

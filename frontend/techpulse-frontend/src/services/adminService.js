@@ -1,6 +1,10 @@
 import axios from "axios";
 
 
+// ==========================
+// API
+// ==========================
+
 const API = "http://localhost:5000/api/admin";
 
 
@@ -9,13 +13,11 @@ const API = "http://localhost:5000/api/admin";
 // ==========================
 
 const config = () => ({
-    headers:{
+    headers: {
         Authorization:
-        `Bearer ${localStorage.getItem("token")}`
+            `Bearer ${localStorage.getItem("token")}`
     }
 });
-
-
 
 
 // ==========================
@@ -32,54 +34,28 @@ export const getDashboard = () => {
 };
 
 
-
-
 // ==========================
 // Analytics
-// بدون Backend Route
 // ==========================
 
-export const getAnalytics = async () => {
+export const getAnalytics = () => {
 
-    const res = await axios.get(
-        `${API}/dashboard`,
+    return axios.get(
+        `${API}/analytics`,
         config()
     );
 
-
-    return {
-
-        data:{
-            categories:
-            res.data.dashboard.categories || [],
-
-
-            workTypes:
-            res.data.dashboard.workTypes || [],
-
-
-            companies:
-            res.data.dashboard.companies || [],
-
-
-            locations:
-            res.data.dashboard.locations || []
-
-        }
-
-    };
-
 };
-
-
 
 
 // ==========================
 // Jobs
 // ==========================
 
-
-export const getJobs = (page=1,limit=10)=>{
+export const getJobs = (
+    page = 1,
+    limit = 10
+) => {
 
     return axios.get(
 
@@ -92,10 +68,11 @@ export const getJobs = (page=1,limit=10)=>{
 };
 
 
+// ==========================
+// Add Job
+// ==========================
 
-
-
-export const addJob=(job)=>{
+export const addJob = (job) => {
 
     return axios.post(
 
@@ -110,12 +87,14 @@ export const addJob=(job)=>{
 };
 
 
+// ==========================
+// Update Job
+// ==========================
 
-
-
-
-export const updateJob=(id,job)=>{
-
+export const updateJob = (
+    id,
+    job
+) => {
 
     return axios.put(
 
@@ -130,12 +109,11 @@ export const updateJob=(id,job)=>{
 };
 
 
+// ==========================
+// Delete Job
+// ==========================
 
-
-
-
-export const deleteJob=(id)=>{
-
+export const deleteJob = (id) => {
 
     return axios.delete(
 
@@ -148,18 +126,11 @@ export const deleteJob=(id)=>{
 };
 
 
-
-
-
-
-
 // ==========================
 // Users
 // ==========================
 
-
-export const deleteUser=(id)=>{
-
+export const deleteUser = (id) => {
 
     return axios.delete(
 
@@ -172,13 +143,14 @@ export const deleteUser=(id)=>{
 };
 
 
+// ==========================
+// Update User Role
+// ==========================
 
-
-
-
-
-export const updateRole=(id,role)=>{
-
+export const updateRole = (
+    id,
+    role
+) => {
 
     return axios.put(
 
@@ -195,18 +167,11 @@ export const updateRole=(id,role)=>{
 };
 
 
-
-
-
-
-
 // ==========================
 // Applications
 // ==========================
 
-
-export const getApplications=()=>{
-
+export const getApplications = () => {
 
     return axios.get(
 
@@ -219,12 +184,13 @@ export const getApplications=()=>{
 };
 
 
+// ==========================
+// Get Application By ID
+// ==========================
 
-
-
-
-export const getApplicationById=(id)=>{
-
+export const getApplicationById = (
+    id
+) => {
 
     return axios.get(
 
@@ -237,13 +203,14 @@ export const getApplicationById=(id)=>{
 };
 
 
+// ==========================
+// Update Application Status
+// ==========================
 
-
-
-
-
-export const updateApplicationStatus=(id,status)=>{
-
+export const updateApplicationStatus = (
+    id,
+    status
+) => {
 
     return axios.put(
 
@@ -260,12 +227,13 @@ export const updateApplicationStatus=(id,status)=>{
 };
 
 
+// ==========================
+// Delete Application
+// ==========================
 
-
-
-
-export const deleteApplication=(id)=>{
-
+export const deleteApplication = (
+    id
+) => {
 
     return axios.delete(
 

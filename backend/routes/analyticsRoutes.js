@@ -4,841 +4,929 @@ const router = express.Router();
 const { getPool } = require("../config/db");
 
 
-
-
-// =====================================
+// =====================================================
 // MAIN ANALYTICS
-// =====================================
+// GET /api/admin/analytics
+// =====================================================
 
+router.get("/", async (req, res) => {
 
-router.get("/", async (req,res)=>{
+    try {
 
+        const pool = getPool();
 
-try{
+        console.log("========================================");
+        console.log("Loading Analytics Data...");
+        console.log("========================================");
 
 
-const pool = getPool();
+        // =================================================
+        // GET ALL JOBS
+        // =================================================
 
+        const jobsResult = await pool
+            .request()
+            .query(`
 
+                SELECT
 
-// ================= KPI =================
+                    f.JobKey,
 
+                    c.CompanyName,
 
-const kpis = await pool.request().query(`
+                    p.PlatformName,
 
+                    l.FullLocation AS Location,
 
-SELECT
+                    l.City,
 
+                    l.Country,
 
-COUNT(*) AS TotalJobs,
+                    d.FullDate AS PostedDate,
 
+                    f.WorkType,
 
-COUNT(DISTINCT CompanyKey) AS TotalCompanies,
+                    f.ExperienceLevel,
 
+                    f.JobCategory
 
-COUNT(DISTINCT PlatformKey) AS TotalPlatforms,
+                FROM FactJobs f
 
+                LEFT JOIN DimCompany c
+                    ON f.CompanyKey = c.CompanyKey
 
-COUNT(DISTINCT LocationKey) AS TotalLocations
+                LEFT JOIN DimPlatform p
+                    ON f.PlatformKey = p.PlatformKey
 
+                LEFT JOIN DimLocation l
+                    ON f.LocationKey = l.LocationKey
 
+                LEFT JOIN DimDate d
+                    ON f.DateKey = d.DateKey
 
-FROM FactJobs
+                WHERE
+                    f.CompanyKey <> -1
 
+                ORDER BY
+                    f.JobKey DESC
 
-WHERE CompanyKey <> -1
+            `);
 
 
+        const jobs =
+            Array.isArray(jobsResult.recordset)
+                ? jobsResult.recordset
+                : [];
 
-`);
 
+        console.log(
+            `Analytics Jobs Loaded: ${jobs.length}`
+        );
 
 
+        // =================================================
+        // JOBS BY CATEGORY
+        // =================================================
 
+        const categoryMap = {};
 
 
+        jobs.forEach((job) => {
 
-// ================= COMPANY =================
+            const category =
+                job.JobCategory || "Other";
 
 
-const jobsByCompany = await pool.request().query(`
+            categoryMap[category] =
+                (categoryMap[category] || 0) + 1;
 
+        });
 
-SELECT TOP 10
 
+        const jobsByCategory =
 
-c.CompanyName,
+            Object.entries(categoryMap)
 
+                .map(([JobCategory, Count]) => ({
 
-COUNT(*) AS Jobs
+                    JobCategory,
 
+                    Count:
+                        Number(Count) || 0
 
+                }))
 
-FROM FactJobs f
+                .sort(
+                    (a, b) =>
+                        b.Count - a.Count
+                );
 
 
+        // =================================================
+        // WORK TYPES
+        // =================================================
 
-JOIN DimCompany c
+        const workTypeMap = {};
 
 
-ON f.CompanyKey=c.CompanyKey
+        jobs.forEach((job) => {
 
+            const workType =
+                job.WorkType || "Unknown";
 
 
-WHERE c.CompanyName <> 'Unknown'
+            workTypeMap[workType] =
+                (workTypeMap[workType] || 0) + 1;
 
+        });
 
 
-GROUP BY c.CompanyName
+        const workTypes =
 
+            Object.entries(workTypeMap)
 
+                .map(([WorkType, Count]) => ({
 
-ORDER BY Jobs DESC
+                    WorkType,
 
+                    Count:
+                        Number(Count) || 0
 
+                }))
 
-`);
+                .sort(
+                    (a, b) =>
+                        b.Count - a.Count
+                );
 
 
+        // =================================================
+        // EXPERIENCE LEVELS
+        // =================================================
 
+        const experienceMap = {};
 
 
+        jobs.forEach((job) => {
 
+            const experience =
+                job.ExperienceLevel || "Unknown";
 
-// ================= PLATFORM =================
 
+            experienceMap[experience] =
+                (experienceMap[experience] || 0) + 1;
 
-const jobsByPlatform = await pool.request().query(`
+        });
 
 
-SELECT
+        const experience =
 
+            Object.entries(experienceMap)
 
-p.PlatformName,
+                .map(([ExperienceLevel, Count]) => ({
 
+                    ExperienceLevel,
 
-COUNT(*) AS Jobs
+                    Count:
+                        Number(Count) || 0
 
+                }))
 
+                .sort(
+                    (a, b) =>
+                        b.Count - a.Count
+                );
 
-FROM FactJobs f
 
+        // =================================================
+        // JOBS BY COMPANY
+        // =================================================
 
+        const companyMap = {};
 
-JOIN DimPlatform p
 
+        jobs.forEach((job) => {
 
-ON f.PlatformKey=p.PlatformKey
+            const company =
+                job.CompanyName || "Unknown";
 
 
+            companyMap[company] =
+                (companyMap[company] || 0) + 1;
 
-WHERE p.PlatformName <> 'Unknown'
+        });
 
 
+        const companies =
 
-GROUP BY p.PlatformName
+            Object.entries(companyMap)
 
+                .map(([CompanyName, Count]) => ({
 
+                    CompanyName,
 
-ORDER BY Jobs DESC
+                    Count:
+                        Number(Count) || 0
 
+                }))
 
+                .sort(
+                    (a, b) =>
+                        b.Count - a.Count
+                );
 
-`);
 
+        // =================================================
+        // JOBS BY PLATFORM
+        // =================================================
 
+        const platformMap = {};
 
 
+        jobs.forEach((job) => {
 
+            const platform =
+                job.PlatformName || "Unknown";
 
 
+            platformMap[platform] =
+                (platformMap[platform] || 0) + 1;
 
-// ================= WORK TYPE =================
+        });
 
 
-const workType = await pool.request().query(`
+        const platforms =
 
+            Object.entries(platformMap)
 
-SELECT
+                .map(([PlatformName, Count]) => ({
 
+                    PlatformName,
 
-WorkType,
+                    Count:
+                        Number(Count) || 0
 
+                }))
 
-COUNT(*) AS Jobs
+                .sort(
+                    (a, b) =>
+                        b.Count - a.Count
+                );
 
 
+        // =================================================
+        // JOBS BY LOCATION
+        // =================================================
 
-FROM FactJobs
+        const locationMap = {};
 
 
+        jobs.forEach((job) => {
 
-WHERE WorkType IS NOT NULL
+            const location =
+                job.Location || "Unknown";
 
 
+            locationMap[location] =
+                (locationMap[location] || 0) + 1;
 
-GROUP BY WorkType
+        });
 
 
+        const locations =
 
-ORDER BY Jobs DESC
+            Object.entries(locationMap)
 
+                .map(([Location, Count]) => ({
 
+                    Location,
 
-`);
+                    Count:
+                        Number(Count) || 0
 
+                }))
 
+                .sort(
+                    (a, b) =>
+                        b.Count - a.Count
+                )
 
+                .slice(0, 15);
 
 
+        // =================================================
+        // JOBS TREND
+        // =================================================
 
+        const trendMap = {};
 
-// ================= EXPERIENCE =================
 
+        jobs.forEach((job) => {
 
-const experience = await pool.request().query(`
+            if (!job.PostedDate) {
 
+                return;
 
-SELECT
+            }
 
 
-ExperienceLevel,
+            let date;
 
 
-COUNT(*) AS Jobs
+            if (
+                job.PostedDate instanceof Date
+            ) {
 
+                date =
 
+                    job.PostedDate
+                        .toISOString()
+                        .split("T")[0];
 
-FROM FactJobs
+            }
 
+            else {
 
+                date =
 
-WHERE ExperienceLevel IS NOT NULL
+                    String(
+                        job.PostedDate
+                    )
+                        .split("T")[0];
 
+            }
 
 
-GROUP BY ExperienceLevel
+            if (!date) {
 
+                return;
 
+            }
 
-ORDER BY Jobs DESC
 
+            trendMap[date] =
+                (trendMap[date] || 0) + 1;
 
+        });
 
-`);
 
+        const jobsTrend =
 
+            Object.entries(trendMap)
 
+                .map(([FullDate, Count]) => ({
 
+                    FullDate,
 
+                    Count:
+                        Number(Count) || 0
 
+                }))
 
-// ================= CATEGORY =================
+                .sort(
 
+                    (a, b) =>
 
-const jobCategories = await pool.request().query(`
+                        new Date(a.FullDate) -
+                        new Date(b.FullDate)
 
+                );
 
-SELECT TOP 8
 
+        // =================================================
+        // KPIs
+        // =================================================
 
-JobCategory,
+        const totalJobs =
+            Number(jobs.length) || 0;
 
 
-COUNT(*) AS Jobs
+        const totalCompanies =
 
+            new Set(
 
+                jobs
 
-FROM FactJobs
+                    .map(
+                        (job) =>
+                            job.CompanyName
+                    )
 
+                    .filter(
 
+                        (value) =>
 
-WHERE
+                            value &&
 
+                            value !== "Unknown"
 
-JobCategory IS NOT NULL
+                    )
 
+            ).size;
 
-AND JobCategory <> 'Other'
 
+        const totalPlatforms =
 
+            new Set(
 
-GROUP BY JobCategory
+                jobs
 
+                    .map(
+                        (job) =>
+                            job.PlatformName
+                    )
 
+                    .filter(
 
-ORDER BY Jobs DESC
+                        (value) =>
 
+                            value &&
 
+                            value !== "Unknown"
 
-`);
+                    )
 
+            ).size;
 
 
+        const totalLocations =
 
+            new Set(
 
+                jobs
 
+                    .map(
 
-// ================= COMPANIES FILTER =================
+                        (job) =>
 
+                            job.Location
 
-const companies = await pool.request().query(`
+                    )
 
+                    .filter(
 
-SELECT DISTINCT
+                        (value) =>
 
+                            value &&
 
-c.CompanyName
+                            value !== "Unknown"
 
+                    )
 
+            ).size;
 
-FROM FactJobs f
 
+        // =================================================
+        // FINAL RESPONSE
+        // =================================================
 
+        const response = {
 
-JOIN DimCompany c
+            success: true,
 
 
-ON f.CompanyKey=c.CompanyKey
+            kpis: {
 
+                TotalJobs:
+                    totalJobs,
 
+                TotalCompanies:
+                    Number(totalCompanies) || 0,
 
-WHERE c.CompanyName <> 'Unknown'
+                TotalPlatforms:
+                    Number(totalPlatforms) || 0,
 
+                TotalLocations:
+                    Number(totalLocations) || 0
 
+            },
 
-ORDER BY c.CompanyName
 
+            jobs,
 
 
-`);
+            jobsByCategory,
 
 
+            workTypes,
 
 
+            experience,
 
 
+            companies,
 
 
-// ================= TREND =================
+            platforms,
 
 
-const jobsTrend = await pool.request().query(`
+            locations,
 
 
-SELECT
+            jobsTrend
 
+        };
 
-d.FullDate,
 
+        console.log(
+            "Analytics KPIs:",
+            response.kpis
+        );
 
-COUNT(*) AS Jobs
 
+        console.log(
+            "========================================"
+        );
 
 
-FROM FactJobs f
+        res.status(200).json(
+            response
+        );
 
+    }
 
+    catch (err) {
 
-JOIN DimDate d
+        console.error(
+            "Main Analytics Error:",
+            err
+        );
 
 
-ON f.DateKey=d.DateKey
+        res.status(500)
+            .json({
 
+                success: false,
 
+                message:
+                    err.message ||
+                    "Failed to load analytics data"
 
-GROUP BY d.FullDate
+            });
 
-
-
-ORDER BY d.FullDate
-
-
-
-`);
-
-
-
-
-
-
-
-res.json({
-
-
-kpis:
-kpis.recordset[0],
-
-
-
-jobsByCompany:
-jobsByCompany.recordset,
-
-
-
-jobsByPlatform:
-jobsByPlatform.recordset,
-
-
-
-workType:
-workType.recordset,
-
-
-
-experience:
-experience.recordset,
-
-
-
-jobCategories:
-jobCategories.recordset,
-
-
-
-companies:
-companies.recordset.map(
-x=>x.CompanyName
-),
-
-
-
-jobsTrend:
-jobsTrend.recordset
-
-
+    }
 
 });
 
 
+// =====================================================
+// ANALYTICS JOBS
+// GET /api/admin/analytics/jobs
+// =====================================================
 
-}
+router.get(
+    "/jobs",
+    async (req, res) => {
 
+        try {
 
+            const pool =
+                getPool();
 
-catch(err){
 
+            const result =
+                await pool
+                    .request()
+                    .query(`
 
-console.log(err);
+                        SELECT
 
+                            f.JobKey,
 
-res.status(500).json({
+                            c.CompanyName,
 
-message:err.message
+                            p.PlatformName,
 
-});
+                            l.FullLocation
+                                AS Location,
 
+                            l.City,
 
-}
+                            l.Country,
 
+                            d.FullDate
+                                AS PostedDate,
 
+                            f.WorkType,
 
-});
+                            f.ExperienceLevel,
 
+                            f.JobCategory
 
+                        FROM FactJobs f
 
+                        LEFT JOIN DimCompany c
 
+                            ON f.CompanyKey =
+                                c.CompanyKey
 
+                        LEFT JOIN DimPlatform p
 
+                            ON f.PlatformKey =
+                                p.PlatformKey
 
+                        LEFT JOIN DimLocation l
 
+                            ON f.LocationKey =
+                                l.LocationKey
 
-// =====================================
-// ALL JOBS FILTER DATA
-// =====================================
+                        LEFT JOIN DimDate d
 
+                            ON f.DateKey =
+                                d.DateKey
 
+                        WHERE
 
-router.get("/jobs", async(req,res)=>{
+                            f.CompanyKey <> -1
 
+                        ORDER BY
 
-try{
+                            f.JobKey DESC
 
+                    `);
 
-const pool=getPool();
 
+            const jobs =
+                Array.isArray(result.recordset)
+                    ? result.recordset
+                    : [];
 
 
-const result = await pool.request().query(`
+            res.status(200).json({
 
+                success: true,
 
-SELECT
+                totalJobs:
+                    jobs.length,
 
+                jobs
 
+            });
 
-c.CompanyName,
+        }
 
+        catch (err) {
 
-p.PlatformName,
+            console.error(
+                "Analytics Jobs Error:",
+                err
+            );
 
 
-l.FullLocation AS Location,
+            res.status(500)
+                .json({
 
+                    success: false,
 
-d.FullDate AS PostedDate,
+                    message:
+                        err.message ||
+                        "Failed to load analytics jobs"
 
+                });
 
-f.WorkType,
+        }
 
+    }
+);
 
-f.ExperienceLevel,
 
-
-f.JobCategory
-
-
-
-FROM FactJobs f
-
-
-
-JOIN DimCompany c
-
-
-ON f.CompanyKey=c.CompanyKey
-
-
-
-
-JOIN DimPlatform p
-
-
-ON f.PlatformKey=p.PlatformKey
-
-
-
-
-JOIN DimLocation l
-
-
-ON f.LocationKey=l.LocationKey
-
-
-
-
-JOIN DimDate d
-
-
-ON f.DateKey=d.DateKey
-
-
-
-
-WHERE
-
-
-c.CompanyName <> 'Unknown'
-
-
-AND
-
-
-p.PlatformName <> 'Unknown'
-
-
-
-`);
-
-
-
-
-res.json(result.recordset);
-
-
-
-}
-
-
-
-catch(err){
-
-
-console.log(err);
-
-
-res.status(500).json({
-
-message:err.message
-
-});
-
-
-}
-
-
-});
-
-
-
-
-
-
-
-
-
-// =====================================
+// =====================================================
 // LOCATIONS ANALYTICS
-// =====================================
+// GET /api/admin/analytics/locations
+// =====================================================
 
+router.get(
+    "/locations",
+    async (req, res) => {
 
+        try {
 
-router.get("/locations", async(req,res)=>{
+            const pool =
+                getPool();
 
 
-try{
+            // =================================================
+            // TOTAL LOCATIONS
+            // =================================================
 
+            const totalLocationsResult =
+                await pool
+                    .request()
+                    .query(`
 
-const pool=getPool();
+                        SELECT
 
+                            COUNT(
+                                DISTINCT LocationKey
+                            )
+                            AS TotalLocations
 
+                        FROM FactJobs
 
+                        WHERE
 
+                            LocationKey <> -1
 
-// Total Locations
+                    `);
 
 
-const totalLocations = await pool.request().query(`
+            // =================================================
+            // JOBS BY LOCATION
+            // =================================================
 
+            const jobsByLocationResult =
+                await pool
+                    .request()
+                    .query(`
 
-SELECT
+                        SELECT TOP 15
 
+                            l.FullLocation
+                                AS Location,
 
-COUNT(DISTINCT LocationKey)
-AS TotalLocations
+                            COUNT(*) AS Jobs
 
+                        FROM FactJobs f
 
+                        JOIN DimLocation l
 
-FROM FactJobs
+                            ON f.LocationKey =
+                                l.LocationKey
 
+                        WHERE
 
+                            f.CompanyKey <> -1
 
-WHERE LocationKey <> -1
+                            AND
 
+                            l.FullLocation IS NOT NULL
 
+                            AND
 
-`);
+                            l.FullLocation <>
+                                'Unknown'
 
+                        GROUP BY
 
+                            l.FullLocation
 
+                        ORDER BY
 
+                            Jobs DESC
 
+                    `);
 
 
+            // =================================================
+            // JOBS BY CITY
+            // =================================================
 
-// Jobs By Full Location
+            const jobsByCityResult =
+                await pool
+                    .request()
+                    .query(`
 
+                        SELECT TOP 15
 
-const jobsByLocation = await pool.request().query(`
+                            l.City,
 
+                            COUNT(*) AS Jobs
 
-SELECT TOP 15
+                        FROM FactJobs f
 
+                        JOIN DimLocation l
 
-l.FullLocation AS Location,
+                            ON f.LocationKey =
+                                l.LocationKey
 
+                        WHERE
 
-COUNT(*) AS Jobs
+                            f.CompanyKey <> -1
 
+                            AND
 
+                            l.City IS NOT NULL
 
-FROM FactJobs f
+                        GROUP BY
 
+                            l.City
 
+                        ORDER BY
 
-JOIN DimLocation l
+                            Jobs DESC
 
+                    `);
 
-ON f.LocationKey=l.LocationKey
 
+            // =================================================
+            // JOBS BY COUNTRY
+            // =================================================
 
+            const jobsByCountryResult =
+                await pool
+                    .request()
+                    .query(`
 
-WHERE
+                        SELECT TOP 15
 
+                            l.Country,
 
-l.FullLocation IS NOT NULL
+                            COUNT(*) AS Jobs
 
+                        FROM FactJobs f
 
+                        JOIN DimLocation l
 
-AND
+                            ON f.LocationKey =
+                                l.LocationKey
 
+                        WHERE
 
-l.FullLocation <> 'Unknown'
+                            f.CompanyKey <> -1
 
+                            AND
 
+                            l.Country IS NOT NULL
 
-GROUP BY l.FullLocation
+                        GROUP BY
 
+                            l.Country
 
+                        ORDER BY
 
-ORDER BY Jobs DESC
+                            Jobs DESC
 
+                    `);
 
 
-`);
+            // =================================================
+            // RESPONSE
+            // =================================================
 
+            res.status(200).json({
 
+                success: true,
 
 
+                totalLocations: {
 
+                    TotalLocations:
 
+                        Number(
 
+                            totalLocationsResult
+                                .recordset?.[0]
+                                ?.TotalLocations
 
-// Jobs By City
+                        ) || 0
 
+                },
 
-const jobsByCity = await pool.request().query(`
 
+                jobsByLocation:
 
-SELECT TOP 15
+                    jobsByLocationResult
+                        .recordset || [],
 
 
-l.City,
+                jobsByCity:
 
+                    jobsByCityResult
+                        .recordset || [],
 
-COUNT(*) AS Jobs
 
+                jobsByCountry:
 
+                    jobsByCountryResult
+                        .recordset || []
 
-FROM FactJobs f
+            });
 
+        }
 
+        catch (err) {
 
-JOIN DimLocation l
+            console.error(
+                "Locations Analytics Error:",
+                err
+            );
 
 
-ON f.LocationKey=l.LocationKey
+            res.status(500)
+                .json({
 
+                    success: false,
 
+                    message:
+                        err.message ||
+                        "Failed to load locations analytics"
 
-WHERE
+                });
 
+        }
 
-l.City IS NOT NULL
-
-
-
-GROUP BY l.City
-
-
-
-ORDER BY Jobs DESC
-
-
-
-`);
-
-
-
-
-
-
-
-
-// Jobs By Country
-
-
-const jobsByCountry = await pool.request().query(`
-
-
-SELECT TOP 15
-
-
-l.Country,
-
-
-COUNT(*) AS Jobs
-
-
-
-FROM FactJobs f
-
-
-
-JOIN DimLocation l
-
-
-ON f.LocationKey=l.LocationKey
-
-
-
-WHERE
-
-
-l.Country IS NOT NULL
-
-
-
-GROUP BY l.Country
-
-
-
-ORDER BY Jobs DESC
-
-
-
-`);
-
-
-
-
-
-
-
-res.json({
-
-
-totalLocations:
-totalLocations.recordset[0],
-
-
-
-jobsByLocation:
-jobsByLocation.recordset,
-
-
-
-jobsByCity:
-jobsByCity.recordset,
-
-
-
-jobsByCountry:
-jobsByCountry.recordset
-
-
-
-});
-
-
-
-}
-
-
-
-catch(err){
-
-
-console.log(err);
-
-
-res.status(500).json({
-
-message:err.message
-
-});
-
-
-}
-
-
-
-});
-
-
-
-
-
-
+    }
+);
 
 
 module.exports = router;
