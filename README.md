@@ -1,4 +1,4 @@
-# TechPulse Egypt 🇪🇬
+# TechPulse 
 
 TechPulse Egypt is a Technology Job Market Intelligence Platform that collects, cleans, analyzes, and visualizes technology job opportunities in Egypt and across different locations.
 
