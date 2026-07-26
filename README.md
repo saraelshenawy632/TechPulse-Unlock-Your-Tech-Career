@@ -38,11 +38,9 @@ The project includes the following components:
 The project uses a dimensional data warehouse containing:
 
 - FactJobs
-- FactJobSkills
 - DimCompany
 - DimLocation
 - DimPlatform
-- DimSkills
 - DimDate
 
 ### 5. ETL
